@@ -8,29 +8,49 @@ import xml.etree.cElementTree as et
 import pandas as pd
 from datetime import datetime
 from S3_loader import S3_loader
+import custom_logger as clog
+
+logger = clog.get_logger(__name__)
 
 class ESMRData(object):
+    '''
+    class for downloading the latest updated xml file from website
+    parsing file to create a dataframe
+    moving the dataframe to s3 bucket
+    '''
 
     def __init__(self):
+        '''
+        Constuctor for the class
+        setting file name, link to main page and aws bucket
+        '''
         self.fname = f"DLTINS_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         self.link_xml = requests.get("https://registers.esma.europa.eu/solr/esma_registers_firds_files/select?q=*&fq="
                             "publication_date:%5B2020-01-08T00:00:00Z+TO+2020-01-08T23:59:59Z%5D&wt=xml&indent=true"
                             "&start=0&rows=100")
         self.bucket = 'abc'
 
-    # print(data_xml.content)
-
     def getFilesToLoad(self):
+        '''
+        Get main page and filter out the recent zip file
+        :return: zipfile and all files inside the zip
+        '''
         soup = BeautifulSoup(self.link_xml.content, 'xml')
         # print(soup)
         link = soup.find("str", attrs={'name': "download_link"}, text=re.compile("DLTINS"))
 
-        print(link)
+        logger.info("Link to zip file: {}".format(link))
         zip_file = requests.get(link.text)
         zipfile = ZipFile(BytesIO(zip_file.content))
         return zipfile, zipfile.namelist()
 
     def parseFiles(self, zipfile, zip_names):
+        '''
+        Parse xml file and generate the required dataframe
+        :param zipfile: latest zip file
+        :param zip_names: list of files inside zip file
+        :return: dataframe with required fileds from xml file
+        '''
         for data_file in zip_names:
             if data_file.endswith('.xml'):
                 count = 0
@@ -65,19 +85,24 @@ class ESMRData(object):
                         rows.append(data)
 
                         count += 1
-                        if count > 3000:
+                        if count > 300:
                             break
                 df = pd.DataFrame(rows)
                 return df
 
     def run(self):
-        zipfile, files = self.getFilesToLoad()
-        df = self.parseFiles(zipfile, files)
-        print(len(df))
-        s3client = S3_loader()
-        # s3client.copy_to_s3(df, self.bucket, self.fname)
-        # pass
-
+        try:
+            logger.info("Get latest zip file from web page{}".format(self.link_xml))
+            zipfile, files = self.getFilesToLoad()
+            logger.info("Parse the xml file and return a dataframe")
+            df = self.parseFiles(zipfile, files)
+            logger.info("Rows in dataframe: {}".format(len(df)))
+            logger.info("Upload the dataframe to AWS bucket{}".format(self.bucket))
+            s3client = S3_loader()
+            # s3client.copy_to_s3(df, self.bucket, self.fname)
+        except Exception as e:
+            logger.error('Something went wrong - {e.__str__()}')
+            raise
 
 if __name__ == '__main__':
     ESMRData().run()
