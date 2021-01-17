@@ -30,7 +30,7 @@ class ESMRData(object):
                             "&start=0&rows=100")
         self.bucket = 'abc'
 
-    def getFilesToLoad(self):
+    def get_files_load(self):
         '''
         Get main page and filter out the recent zip file
         :return: zipfile and all files inside the zip
@@ -44,17 +44,19 @@ class ESMRData(object):
         zipfile = ZipFile(BytesIO(zip_file.content))
         return zipfile, zipfile.namelist()
 
-    def parseFiles(self, zipfile, zip_names):
+    def parse_files(self, zipfile, zip_names):
         '''
         Parse xml file and generate the required dataframe
         :param zipfile: latest zip file
         :param zip_names: list of files inside zip file
         :return: dataframe with required fileds from xml file
         '''
+        logger.info("Files in zip:{}".format(zip_names))
         for data_file in zip_names:
             if data_file.endswith('.xml'):
-                count = 0
+                # count = 0
                 rows = []
+                logger.info("Parsing xml file{}".format(data_file))
                 for event, element in et.iterparse(zipfile.open(data_file), events=('start', 'end')):
                     data = dict()
                     _, _, element.tag = element.tag.rpartition('}')
@@ -84,18 +86,18 @@ class ESMRData(object):
                                         data['NtnlCcy'] = child2.text
                         rows.append(data)
 
-                        count += 1
-                        if count > 300:
-                            break
+                        # count += 1
+                        # if count > 300:
+                        #     break
                 df = pd.DataFrame(rows)
                 return df
 
     def run(self):
         try:
             logger.info("Get latest zip file from web page{}".format(self.link_xml))
-            zipfile, files = self.getFilesToLoad()
+            zipfile, files = self.get_files_load()
             logger.info("Parse the xml file and return a dataframe")
-            df = self.parseFiles(zipfile, files)
+            df = self.parse_files(zipfile, files)
             logger.info("Rows in dataframe: {}".format(len(df)))
             logger.info("Upload the dataframe to AWS bucket{}".format(self.bucket))
             s3client = S3_loader()
