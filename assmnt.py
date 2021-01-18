@@ -7,7 +7,7 @@ from zipfile import ZipFile
 import xml.etree.cElementTree as et
 import pandas as pd
 from datetime import datetime
-from S3_loader import S3_loader
+from s3_loader import S3Loader
 import custom_logger as clog
 
 logger = clog.get_logger(__name__)
@@ -54,25 +54,20 @@ class ESMRData(object):
         logger.info("Files in zip:{}".format(zip_names))
         for data_file in zip_names:
             if data_file.endswith('.xml'):
-                # count = 0
                 rows = []
                 logger.info("Parsing xml file{}".format(data_file))
                 for event, element in et.iterparse(zipfile.open(data_file), events=('start', 'end')):
                     data = dict()
                     _, _, element.tag = element.tag.rpartition('}')
-                    # print(element.tag)
                     if element.tag == 'ModfdRcrd':
-                        # print(element)
                         children1 = list(element)
                         for child in children1:
-                            # print(child)
                             _, _, child.tag = child.tag.rpartition('}')
                             if child.tag == 'Issr':
                                 data['Issr'] = child.text
                             if child.tag == 'FinInstrmGnlAttrbts':
                                 children2 = list(child)
                                 for child2 in children2:
-                                    # print(child2)
                                     _, _, child2.tag = child2.tag.rpartition('}')
                                     if child2.tag == 'Id':
                                         data['Id'] = child2.text
@@ -86,13 +81,14 @@ class ESMRData(object):
                                         data['NtnlCcy'] = child2.text
                         rows.append(data)
 
-                        # count += 1
-                        # if count > 300:
-                        #     break
                 df = pd.DataFrame(rows)
                 return df
 
     def run(self):
+        '''
+        Initiate file download and create df for s3 loader
+        :return: None
+        '''
         try:
             logger.info("Get latest zip file from web page{}".format(self.link_xml))
             zipfile, files = self.get_files_load()
@@ -100,7 +96,7 @@ class ESMRData(object):
             df = self.parse_files(zipfile, files)
             logger.info("Rows in dataframe: {}".format(len(df)))
             logger.info("Upload the dataframe to AWS bucket{}".format(self.bucket))
-            s3client = S3_loader()
+            s3client = S3Loader()
             # s3client.copy_to_s3(df, self.bucket, self.fname)
         except Exception as e:
             logger.error('Something went wrong - {e.__str__()}')
