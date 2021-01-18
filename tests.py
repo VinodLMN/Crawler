@@ -3,13 +3,13 @@ import pandas
 import unittest
 from unittest.mock import patch
 
-from steeleye_assmnt import ESMRData
+from assmnt import ESMRData
 
 class TestRuns(unittest.TestCase):
 
-    @patch('steeleye_assmnt.BytesIO', autospec=True)
-    @patch('steeleye_assmnt.ZipFile', autospec=True)
-    @patch('steeleye_assmnt.logger', autospec=True)
+    @patch('assmnt.BytesIO', autospec=True)
+    @patch('assmnt.ZipFile', autospec=True)
+    @patch('assmnt.logger', autospec=True)
     def test_get_dltins_link(self, mock_logger, mock_zipfile, mock_bytesio):
         """
         success scenario for get_dltins_link() method
@@ -20,8 +20,8 @@ class TestRuns(unittest.TestCase):
         self.assertTrue(mock_zipfile.called, 'mock_zipfile() not called')
         self.assertFalse(mock_bytesio.called, 'Unexpected call to BytesIO()')
 
-    @patch('steeleye_assmnt.et', autospec=True)
-    @patch('steeleye_assmnt.logger', autospec=True)
+    @patch('assmnt.et', autospec=True)
+    @patch('assmnt.logger', autospec=True)
     def test_parse_files(self, mock_logger, mock_etree):
         """
         success scenario for get_dltins_link() method
