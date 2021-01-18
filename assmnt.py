@@ -96,7 +96,7 @@ class ESMRData(object):
             df = self.parse_files(zipfile, files)
             logger.info("Rows in dataframe: {}".format(len(df)))
             logger.info("Upload the dataframe to AWS bucket{}".format(self.bucket))
-            s3client = S3Loader()
+            # s3client = S3Loader()
             # s3client.copy_to_s3(df, self.bucket, self.fname)
         except Exception as e:
             logger.error('Something went wrong - {e.__str__()}')
