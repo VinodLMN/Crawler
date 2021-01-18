@@ -2,7 +2,7 @@
 import boto3
 from io import StringIO
 
-class S3_loader(object):
+class S3Loader(object):
 
     def __init__(self):
         self.s3client = boto3.client('s3', aws_access_key_id='key', aws_secret_access_key='secret_key')
